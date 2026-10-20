@@ -225,6 +225,30 @@ input[type=range] { width: 100%; accent-color: var(--gold) }
 .bon .num { color: var(--gold); white-space: nowrap }
 .gets { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13.5px }
 
+/* intro */
+.intro { background: var(--navy); color: #fff; border-radius: 16px; padding: clamp(28px, 6vw, 64px) clamp(20px, 5vw, 56px); display: grid; gap: 22px; min-height: 300px; align-content: center }
+.intro .ix { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.6); font-weight: 600 }
+.frames { position: relative; min-height: 150px }
+.frame { position: absolute; inset: 0; opacity: 0; transform: translateY(8px); transition: opacity .6s ease, transform .6s ease; pointer-events: none }
+.frame.on { opacity: 1; transform: none; pointer-events: auto }
+.frame h2 { font-size: clamp(24px, 3.6vw, 40px); line-height: 1.15; letter-spacing: -.02em; font-weight: 700; max-width: 26ch; margin: 0 }
+.frame h2 em { font-style: normal; color: #FF8A9A }
+.frame p { margin: 12px 0 0; color: rgba(255,255,255,.75); font-size: 15px; max-width: 56ch }
+.intro-foot { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between }
+.dots { display: flex; gap: 6px }
+.dots i { width: 22px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.25) }
+.dots i.on { background: #fff }
+.intro .go { background: #fff; color: var(--navy); border: 0; border-radius: 999px; padding: 12px 22px; font-weight: 700; font-size: 15px }
+.intro .skip { background: none; border: 0; color: rgba(255,255,255,.65); text-decoration: underline; font-size: 13px }
+@media (prefers-reduced-motion: reduce) { .frames { min-height: 0; display: grid; gap: 18px } .frame { position: static; opacity: 1; transform: none } }
+/* value question */
+.valueq { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 22px; align-items: center; margin-bottom: 16px }
+@media (max-width: 860px) { .valueq { grid-template-columns: 1fr } }
+.valueq h2 { font-size: clamp(20px, 2.8vw, 28px); letter-spacing: -.015em; margin: 0 0 6px }
+.valueq .vv { font-family: var(--f-num); font-size: clamp(30px, 4vw, 44px); color: var(--navy); margin: 10px 0 6px }
+.need { border-radius: 12px; background: var(--gold-soft); border: 1px solid var(--gold); padding: 18px; display: grid; gap: 4px }
+.need b { font-family: var(--f-num); font-size: clamp(44px, 6vw, 64px); line-height: 1; color: var(--gold) }
+
 /* results */
 .res { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px }
 @media (max-width: 900px) { .res { grid-template-columns: 1fr } }
@@ -329,6 +353,22 @@ input[type=range] { width: 100%; accent-color: var(--gold) }
   </header>
 
   <!-- ===== SIMULATION ===== -->
+  <section class="intro" id="intro" aria-label="Introduction">
+    <div class="ix">rewalt: Flow · a 60-second introduction</div>
+    <div class="frames" id="frames">
+      <div class="frame on"><h2>Last week your ads brought in leads. <em>How many heard from a person within 5 minutes?</em></h2></div>
+      <div class="frame"><h2>Every hour a lead waits, the interest fades.</h2><p>A lead who hears nothing is ad budget spent for nothing. A lead asked for money on the first call is a lead lost.</p></div>
+      <div class="frame"><h2>rewalt: Flow. Every lead answered in 60 seconds. <em>Every call triggered by what the lead just did.</em></h2><p>Built on 15 years and 15,000+ sales meetings of experience, delivered through Kommo and an AI layer that keeps the standard high.</p></div>
+    </div>
+    <div class="intro-foot">
+      <div class="dots" id="dots"><i class="on"></i><i></i><i></i></div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <button class="skip" id="skipintro">Skip intro</button>
+        <button class="go" id="gointro">Watch one lead become a client ▶</button>
+      </div>
+    </div>
+  </section>
+
   <section class="sim" aria-labelledby="sim-title">
     <div class="sim-head">
       <div>
@@ -582,6 +622,20 @@ input[type=range] { width: 100%; accent-color: var(--gold) }
   </section>
 
   <section id="v-case" role="tabpanel" aria-labelledby="t-case" hidden>
+    <div class="valueq">
+      <div>
+        <div class="fine" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--gold)">One question first</div>
+        <h2>What is one funded client worth to rewalt?</h2>
+        <p class="muted" style="margin:0">Net revenue from one client in the first year. Not the deposit — what rewalt earns from it.</p>
+        <div class="vv" id="o-rev"></div>
+        <label for="r-rev" class="fine" style="display:block">Move to your number<input type="range" id="r-rev" min="200" max="10000" step="100" value="2000" style="margin-top:6px"></label>
+      </div>
+      <div class="need">
+        <span class="fine">The €8,000 project pays for itself after</span>
+        <b id="c-need"></b>
+        <span class="fine">extra funded clients. Every client after that is profit.</span>
+      </div>
+    </div>
     <div class="bc">
       <div class="panel">
         <h2>Your numbers <small>move the sliders</small></h2>
@@ -589,9 +643,8 @@ input[type=range] { width: 100%; accent-color: var(--gold) }
           <label for="r-leads"><span class="lr"><span>Leads per month</span><output id="o-leads"></output></span><input type="range" id="r-leads" min="500" max="10000" step="250" value="2000"></label>
           <label for="r-base"><span class="lr"><span>Lead → funded today (no system)</span><output id="o-base"></output></span><input type="range" id="r-base" min="0.1" max="2" step="0.1" value="0.5"></label>
           <label for="r-sys"><span class="lr"><span>Lead → funded with the system</span><output id="o-sys"></output></span><input type="range" id="r-sys" min="0.2" max="3" step="0.1" value="1"></label>
-          <label for="r-rev"><span class="lr"><span>Net revenue per funded client</span><output id="o-rev"></output></span><input type="range" id="r-rev" min="200" max="5000" step="100" value="800"></label>
         </div>
-        <p class="fine" style="margin:16px 0 0">Defaults are the planning assumptions from the proposal. rewalt's finance team should set the revenue per client.</p>
+        <p class="fine" style="margin:16px 0 0">Defaults are the planning assumptions from the proposal; replace them with rewalt's own numbers.</p>
       </div>
       <div class="panel out">
         <h2>What the system adds <small>per month</small></h2>
@@ -873,6 +926,7 @@ function calc() {
   const leadsN = +$("#r-leads").value, base = +$("#r-base").value, sys = +$("#r-sys").value, rev = +$("#r-rev").value;
   $("#o-leads").textContent = leadsN.toLocaleString("en"); $("#o-base").textContent = base.toFixed(1) + "%";
   $("#o-sys").textContent = sys.toFixed(1) + "%"; $("#o-rev").textContent = eur(rev);
+  const need = Math.ceil(PKG / rev); $("#c-need").textContent = need + (need === 1 ? " client" : " clients");
   const extra = leadsN * (sys - base) / 100, mrev = extra * rev;
   $("#c-extra").textContent = extra > 0 ? "+" + (Math.round(extra * 10) / 10).toLocaleString("en") : "0";
   $("#c-rev").textContent = eur(Math.max(mrev, 0)); $("#c-year").textContent = eur(Math.max(mrev * 12, 0));
@@ -936,6 +990,18 @@ $("#pbdoc").innerHTML = `<div class="kind">In preparation</div><h3>The playbook 
   <div class="lockbox"><b>Delivered in weeks 2–4.</b> Messages first (week 2), call scripts and objection bank (week 3), decision and recovery scripts (week 4).</div>`;
 
 document.querySelector("#v-eng").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) show(b.dataset.go); });
+
+/* ================= INTRO ================= */
+(function () {
+  const fr = [...document.querySelectorAll(".frame")], dots = [...document.querySelectorAll("#dots i")];
+  let k = 0, t = null;
+  const set = i => { fr.forEach((f, j) => f.classList.toggle("on", j === i)); dots.forEach((d, j) => d.classList.toggle("on", j <= i)); };
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce) t = setInterval(() => { if (k < fr.length - 1) { k++; set(k); } else clearInterval(t); }, 4200);
+  const start = () => { clearInterval(t); set(fr.length - 1); document.querySelector(".sim").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); if (!timer) setTimeout(() => $("#play").click(), reduce ? 0 : 600); };
+  $("#gointro").addEventListener("click", start);
+  $("#skipintro").addEventListener("click", () => { clearInterval(t); set(fr.length - 1); document.querySelector(".sim").scrollIntoView({ behavior: "auto", block: "start" }); });
+})();
 
 /* ================= TABS ================= */
 const tabs = [...document.querySelectorAll(".tab")];
