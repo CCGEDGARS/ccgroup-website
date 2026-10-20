@@ -363,7 +363,6 @@ input[type=range] { width: 100%; accent-color: var(--gold) }
     <div class="intro-foot">
       <div class="dots" id="dots"><i class="on"></i><i></i><i></i></div>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-        <button class="skip" id="skipintro">Skip intro</button>
         <button class="go" id="gointro">Watch one lead become a client ▶</button>
       </div>
     </div>
@@ -1000,7 +999,6 @@ document.querySelector("#v-eng").addEventListener("click", e => { const b = e.ta
   if (!reduce) t = setInterval(() => { if (k < fr.length - 1) { k++; set(k); } else clearInterval(t); }, 4200);
   const start = () => { clearInterval(t); set(fr.length - 1); document.querySelector(".sim").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); if (!timer) setTimeout(() => $("#play").click(), reduce ? 0 : 600); };
   $("#gointro").addEventListener("click", start);
-  $("#skipintro").addEventListener("click", () => { clearInterval(t); set(fr.length - 1); document.querySelector(".sim").scrollIntoView({ behavior: "auto", block: "start" }); });
 })();
 
 /* ================= TABS ================= */
