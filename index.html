@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>rewalt: Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: operator console in a light version of rewalt's palette (navy, coral, graphite on off-white). Hero = live simulation; tabs below. Single light theme so it looks the same on every presenting screen. */
+:root {
+  --bg: #F4F5F8; --panel: #FFFFFF; --panel-2: #F7F8FA; --line: #E2E4EA;
+  --fg: #191B1F; --muted: #6A6F7E; --gold: #E5354E; --gold-ink: #FFFFFF;
+  --blue: #2F3488; --good: #1E8A5A; --warn: #B7770B; --bad: #D23A4F;
+  --gold-soft: rgba(229,53,78,.09); --blue-soft: rgba(47,52,136,.08);
+  --navy: #1A1B4C;
+  --phone: #EEF0F4; --bubble: #FFFFFF; --bubble-me: #E8E9F6;
+  --f-ui: "Instrument Sans", "Inter", Arial, Helvetica, sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums }
+.muted { color: var(--muted) }
+h1, h2, h3 { margin: 0; text-wrap: balance }
+button, input { font: inherit; color: inherit }
+button { cursor: pointer }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between }
+.brand { display: flex; align-items: center; gap: 12px }
+.mark { width: 34px; height: 34px; border-radius: 9px; background: var(--navy); color: #FFFFFF; display: grid; place-items: center; font-weight: 700; font-size: 15px }
+.brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -.01em }
+.brand p { margin: 0; font-size: 12.5px; color: var(--muted) }
+.demo-tag { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line); padding: 5px 10px; border-radius: 999px; color: var(--muted) }
+.demo-tag b { color: var(--gold); font-weight: 600 }
+
+/* ---------- SIMULATION ---------- */
+.sim { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(25,27,31,.04), 0 8px 24px rgba(26,27,76,.06); border-radius: 16px; padding: 20px; display: grid; gap: 18px }
+.sim-head { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; align-items: flex-end }
+.sim-head .eyebrow { font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); font-weight: 600 }
+.sim-head h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 700; letter-spacing: -.015em; margin-top: 4px }
+.controls { display: flex; gap: 8px; flex-wrap: wrap }
+.btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 9px 16px; font-weight: 500 }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--navy); border-color: var(--navy); color: #FFFFFF; font-weight: 600 }
+.btn[disabled] { opacity: .4; cursor: default }
+.sim-body { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 20px; align-items: start }
+@media (max-width: 860px) { .sim-body { grid-template-columns: 1fr } .phone { margin: 0 auto } }
+
+.phone { width: 100%; max-width: 300px; border-radius: 34px; padding: 10px; background: var(--navy); }
+.screen { background: var(--phone); border-radius: 26px; height: 520px; display: grid; grid-template-rows: auto 1fr; overflow: hidden }
+.ph-bar { padding: 12px 16px 10px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line) }
+.ph-av { width: 32px; height: 32px; border-radius: 50%; background: var(--navy); color: #FFFFFF; display: grid; place-items: center; font-weight: 700; font-size: 13px }
+.ph-bar b { display: block; font-size: 13.5px }
+.ph-bar small { color: var(--muted); font-size: 11.5px }
+.ph-feed { overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth }
+.ph-day { align-self: center; font-size: 11px; color: var(--muted); font-family: var(--f-num); padding: 2px 8px; border-radius: 6px; background: var(--panel-2) }
+.bub { max-width: 88%; background: var(--bubble); border-radius: 14px 14px 14px 4px; padding: 9px 11px; font-size: 13px; line-height: 1.4; animation: pop .35s ease-out both }
+.bub.me { align-self: flex-end; background: var(--bubble-me); border-radius: 14px 14px 4px 14px }
+.bub .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 10.5px; color: var(--muted); margin-top: 4px; font-family: var(--f-num) }
+.bub .src { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--blue); font-weight: 600; margin-bottom: 3px }
+.bub.card { border: 1px solid var(--line) }
+.bub.call { align-self: center; text-align: center; background: var(--gold-soft); border-radius: 12px; max-width: 100% }
+.bub .vid { height: 64px; border-radius: 8px; margin: 4px 0 6px; background: linear-gradient(135deg, var(--blue-soft), var(--gold-soft)); display: grid; place-items: center; font-size: 20px; color: var(--fg) }
+.field { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 4px 0; font-size: 12px }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98) } to { opacity: 1; transform: none } }
+
+.con { display: grid; gap: 14px; min-width: 0 }
+.clockrow { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: baseline }
+.clock { font-family: var(--f-num); font-size: clamp(34px, 5vw, 52px); line-height: 1; font-weight: 500 }
+.clock small { font-size: .38em; color: var(--muted); margin-left: 8px }
+.caption { font-size: 17px; font-weight: 600; max-width: 52ch }
+.journey { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px }
+.step { display: grid; gap: 6px; font-size: 11px; color: var(--muted); min-width: 0 }
+.step .bar { height: 6px; border-radius: 3px; background: var(--line); transition: background .4s }
+.step.done .bar { background: var(--blue) }
+.step.now .bar { background: var(--gold) }
+.step.now { color: var(--fg); font-weight: 600 }
+.step span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+@media (max-width: 560px) { .step span { display: none } .step.now span { display: block; white-space: normal } }
+.alert { display: flex; gap: 12px; align-items: center; border: 1px solid var(--gold); background: var(--gold-soft); border-radius: 10px; padding: 10px 14px; font-weight: 600; animation: pulse 1.6s ease-in-out 2 }
+.alert .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); flex: none }
+.alert small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px var(--gold-soft) } }
+.con-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px }
+@media (max-width: 640px) { .con-grid { grid-template-columns: 1fr } }
+.box { border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0 }
+.box h4 { margin: 0 0 10px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600 }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; max-height: 210px; overflow-y: auto }
+.log li { display: grid; grid-template-columns: 74px minmax(0,1fr); gap: 8px; animation: pop .35s ease-out both }
+.log time { font-family: var(--f-num); font-size: 12px; color: var(--muted) }
+.log .sys { color: var(--blue) }
+.log .hum { color: var(--gold) }
+.stat { display: grid; gap: 10px }
+.stat div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px }
+.stat .v { font-family: var(--f-num); font-size: 20px }
+.stat .v.gold { color: var(--gold) }
+.summary { border-radius: 12px; padding: 18px; background: var(--gold-soft); border: 1px solid var(--gold); display: grid; gap: 10px }
+.summary h3 { font-size: 22px }
+.summary .facts { display: flex; flex-wrap: wrap; gap: 8px 24px }
+.summary .facts b { font-family: var(--f-num); font-size: 26px; display: block; color: var(--gold); font-weight: 500 }
+.progress { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden }
+.progress i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .4s }
+
+/* ---------- KPIs + tabs ---------- */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden }
+.kpi { background: var(--panel); padding: 12px 14px; display: grid; gap: 2px; min-width: 0 }
+.kpi .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted) }
+.kpi .val { font-family: var(--f-num); font-size: 22px; font-weight: 500 }
+.kpi .sub { font-size: 12px; color: var(--muted) }
+.kpi .sub.good { color: var(--good) }
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(3, minmax(0,1fr)) } }
+@media (max-width: 480px) { .kpis { grid-template-columns: repeat(2, minmax(0,1fr)) } }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto }
+.tab { background: none; border: 0; padding: 10px 14px; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500 }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold) }
+.tab .count { font-family: var(--f-num); font-size: 11px; background: var(--gold-soft); color: var(--gold); padding: 1px 6px; border-radius: 6px; margin-left: 6px }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0 }
+.panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.panel h2 small { font-weight: 400; font-size: 12px; color: var(--muted) }
+
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start }
+@media (max-width: 960px) { .split { grid-template-columns: 1fr } }
+.queue { display: grid; gap: 6px }
+.lead { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; background: var(--panel-2); text-align: left; width: 100% }
+.lead:hover { border-color: var(--line) }
+.lead[aria-current="true"] { border-color: var(--gold); background: var(--gold-soft) }
+.score { font-family: var(--f-num); font-size: 15px; font-weight: 500; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--line) }
+.score.hot { border-color: var(--gold); color: var(--gold) }
+.score.warm { border-color: var(--blue); color: var(--blue) }
+.lead .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.lead .why { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.due { font-family: var(--f-num); font-size: 12px; text-align: right; white-space: nowrap }
+.due.now { color: var(--gold) }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--blue-soft); color: var(--blue); font-weight: 500; white-space: nowrap }
+.chip.gold { background: var(--gold-soft); color: var(--gold) }
+.chip.plain { background: transparent; border: 1px solid var(--line); color: var(--muted) }
+.ws-head { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: flex-start; margin-bottom: 14px }
+.ws-head h3 { font-size: 20px; font-weight: 700 }
+.ws-head .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px }
+.ws-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-top: 14px }
+@media (max-width: 640px) { .ws-grid { grid-template-columns: 1fr } }
+.script ol { margin: 0; padding-left: 20px; display: grid; gap: 8px }
+.script li::marker { color: var(--gold); font-family: var(--f-num); font-size: 12px }
+.script .say { display: block; color: var(--muted); font-size: 13px }
+.rule { margin-top: 12px; padding: 8px 10px; border-radius: 8px; background: var(--gold-soft); font-size: 12.5px }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px }
+.feed li { display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 8px }
+.feed time { font-family: var(--f-num); font-size: 12px; color: var(--muted) }
+.feed .sys { color: var(--blue) }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px }
+.next { margin-top: 12px; font-size: 13px }
+
+.ov { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px }
+@media (max-width: 900px) { .ov { grid-template-columns: 1fr } }
+.funnel { display: grid; gap: 10px }
+.frow { display: grid; grid-template-columns: minmax(120px, 210px) minmax(0,1fr) 64px; gap: 12px; align-items: center; font-size: 13px }
+.ftrack { height: 22px; background: var(--panel-2); border-radius: 5px; overflow: hidden }
+.ffill { display: block; height: 100%; background: var(--blue); opacity: .85; border-radius: 5px }
+.frow:last-child .ffill { background: var(--gold); opacity: 1 }
+.frow .n { text-align: right }
+.frow .drop { grid-column: 2 / 4; font-size: 11.5px; color: var(--muted); margin-top: -6px }
+@media (max-width: 520px) { .frow { grid-template-columns: 1fr 56px } .ftrack { grid-column: 1 / 3; grid-row: 2 } .frow .drop { grid-column: 1 / 3 } }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border-radius: 10px; overflow: hidden }
+.rules li { background: var(--panel); padding: 10px 12px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px; font-size: 13px }
+.rules .then { color: var(--muted); font-size: 12.5px; grid-column: 1 }
+.rules .fired { font-family: var(--f-num); font-size: 12px; color: var(--good); grid-row: 1 / 3; grid-column: 2; align-self: center; text-align: right }
+
+.review { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px }
+@media (max-width: 860px) { .review { grid-template-columns: 1fr } }
+.big { font-family: var(--f-num); font-size: 56px; line-height: 1; color: var(--gold) }
+.big small { font-size: 18px; color: var(--muted) }
+.crit { display: grid; gap: 10px; margin-top: 4px }
+.crit .row { display: grid; grid-template-columns: minmax(0,1fr) 46px; gap: 4px 10px; font-size: 13px }
+.crit .mtr { grid-column: 1 / 3; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden }
+.crit .mtr i { display: block; height: 100%; background: var(--blue) }
+.crit .row.low .mtr i { background: var(--warn) }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px }
+.checks li { display: flex; gap: 8px }
+.ok { color: var(--good); font-weight: 700 } .no { color: var(--bad); font-weight: 700 }
+.fixes { margin: 0; padding-left: 20px; display: grid; gap: 10px; font-size: 13.5px }
+.fixes q { color: var(--muted); display: block; font-size: 13px; margin-top: 2px }
+.transcript { font-size: 13px; display: grid; gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 4px }
+.transcript p { margin: 0 }
+.transcript .who { font-family: var(--f-num); font-size: 11px; color: var(--muted); margin-right: 6px }
+.transcript mark { background: var(--gold-soft); color: inherit; border-radius: 3px; padding: 0 2px }
+
+/* business case */
+.bc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px }
+@media (max-width: 860px) { .bc { grid-template-columns: 1fr } }
+.in { display: grid; gap: 18px }
+.in label { display: grid; gap: 6px; font-size: 13px }
+.in .lr { display: flex; justify-content: space-between; gap: 8px }
+.in output { font-family: var(--f-num); color: var(--gold) }
+input[type=range] { width: 100%; accent-color: var(--gold) }
+.out { display: grid; gap: 14px; align-content: start }
+.out .hero-n { font-family: var(--f-num); font-size: clamp(40px, 6vw, 64px); line-height: 1; color: var(--gold) }
+.out .row2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px }
+.out .cell { border: 1px solid var(--line); border-radius: 10px; padding: 12px }
+.out .cell b { display: block; font-family: var(--f-num); font-size: 22px; font-weight: 500 }
+.out .cell span { font-size: 12px; color: var(--muted) }
+.fine { font-size: 12px; color: var(--muted) }
+
+/* offer */
+.offer { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px }
+@media (max-width: 900px) { .offer { grid-template-columns: 1fr } }
+.weeks { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 6px }
+@media (max-width: 640px) { .weeks { grid-template-columns: repeat(4, minmax(0,1fr)) } }
+.wk { border: 1px solid var(--line); border-radius: 8px; padding: 10px 8px; display: grid; gap: 4px; min-width: 0 }
+.wk b { font-family: var(--f-num); font-size: 11px; color: var(--muted); font-weight: 400 }
+.wk span { font-size: 12.5px; font-weight: 600; line-height: 1.25 }
+.wk.live { border-color: var(--gold); background: var(--gold-soft) }
+.price { font-family: var(--f-num); font-size: 44px; line-height: 1 }
+.price small { font-size: 15px; color: var(--muted) }
+.bon { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px }
+.bon li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px }
+.bon .num { color: var(--gold); white-space: nowrap }
+.gets { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13.5px }
+
+/* results */
+.res { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px }
+@media (max-width: 900px) { .res { grid-template-columns: 1fr } }
+.res .wide { grid-column: 1 / -1 }
+.tbl-wrap { overflow-x: auto }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px }
+.tbl th { text-align: left; font-weight: 500; font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 0 10px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap }
+.tbl td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: middle }
+.tbl tr:last-child td { border-bottom: 0 }
+.tbl .r { text-align: right; font-family: var(--f-num); font-variant-numeric: tabular-nums; white-space: nowrap }
+.tbl th.r { font-family: var(--f-ui) }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap }
+.pill.on { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent) }
+.pill.watch { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent) }
+.pill.off { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent) }
+.chart svg { width: 100%; height: auto; display: block }
+.chart text { font-family: var(--f-num); font-size: 11px; fill: var(--muted) }
+.chart .lab { fill: var(--fg); font-size: 12px }
+.gates { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 6px }
+@media (max-width: 640px) { .gates { grid-template-columns: repeat(2, minmax(0,1fr)) } }
+.gate { border: 1px solid var(--line); border-radius: 8px; padding: 10px 8px; display: grid; gap: 4px; font-size: 12px; min-width: 0 }
+.gate b { font-family: var(--f-num); font-size: 11px; font-weight: 400; color: var(--muted); display: flex; justify-content: space-between }
+.gate.done { border-color: color-mix(in srgb, var(--good) 50%, var(--line)) }
+.gate.done b i { color: var(--good); font-style: normal }
+.gate.now { border-color: var(--gold); background: var(--gold-soft) }
+
+/* engine */
+.eng-hero { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; align-items: center }
+@media (max-width: 860px) { .eng-hero { grid-template-columns: 1fr } }
+.eng-hero h3 { font-size: clamp(20px, 2.6vw, 26px); letter-spacing: -.01em }
+.eng-line { display: grid; gap: 6px; font-size: 14px }
+.eng-line div { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line) }
+.eng-line div:last-child { border-bottom: 0; color: var(--fg); font-weight: 600 }
+.eng-line b { font-weight: 500; color: var(--muted) }
+.eng-line div:last-child b { color: var(--gold) }
+.brains { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px }
+@media (max-width: 700px) { .brains { grid-template-columns: 1fr } }
+.brain h4 { margin: 0 0 4px; font-size: 16px; text-transform: none; letter-spacing: 0; color: var(--fg) }
+.brain p { margin: 0 0 10px; font-size: 13px; color: var(--muted) }
+.brain ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13.5px }
+.eng-three { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px }
+@media (max-width: 900px) { .eng-three { grid-template-columns: 1fr } }
+.chatq { align-self: flex-end; max-width: 92%; background: var(--bubble-me); border-radius: 12px 12px 4px 12px; padding: 9px 11px; font-size: 13px }
+.chata { max-width: 96%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; padding: 9px 11px; font-size: 13px; display: grid; gap: 6px }
+.chata .srcs { display: flex; gap: 6px; flex-wrap: wrap }
+.chatbox { display: flex; flex-direction: column; gap: 8px }
+.rp { display: grid; gap: 8px; font-size: 13px }
+.rp .who { display: flex; gap: 10px; align-items: center }
+.rp .who .ph-av { width: 36px; height: 36px }
+.mgr { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px }
+.mgr li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center }
+.bonus-strip { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; border: 1px solid var(--gold); background: var(--gold-soft); border-radius: 12px; padding: 14px 16px }
+
+/* playbook */
+.pb { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px; align-items: start }
+@media (max-width: 900px) { .pb { grid-template-columns: 1fr } }
+.pb-list { display: grid; gap: 16px }
+.pb-group h4 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between }
+.pb-items { display: grid; gap: 4px }
+.pb-item { display: grid; grid-template-columns: 26px minmax(0,1fr) auto; gap: 8px; align-items: center; text-align: left; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid transparent; background: var(--panel-2); font-size: 13px }
+.pb-item .n { font-family: var(--f-num); font-size: 11.5px; color: var(--muted) }
+.pb-item .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.pb-item .tag { font-size: 11px; color: var(--muted); white-space: nowrap }
+.pb-item.open .tag { color: var(--gold) }
+.pb-item.locked { opacity: .62; cursor: default; background: transparent; border-color: var(--line) }
+.pb-item[aria-current="true"] { border-color: var(--gold); background: var(--gold-soft) }
+.pb-doc { display: grid; gap: 12px; font-size: 14px }
+.pb-doc .kind { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 600 }
+.pb-doc h3 { font-size: 20px }
+.pb-doc .when { font-size: 12.5px; color: var(--muted) }
+.pb-doc ol { margin: 0; padding-left: 22px; display: grid; gap: 10px }
+.pb-doc ol li::marker { color: var(--gold); font-family: var(--f-num); font-size: 12px }
+.pb-doc .say { display: block; color: var(--muted); margin-top: 2px }
+.mail { border: 1px solid var(--line); border-radius: 10px; overflow: hidden }
+.mail .hd { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2); font-size: 13px; display: grid; gap: 2px }
+.mail .bd { padding: 14px; display: grid; gap: 10px; font-size: 14px; line-height: 1.55 }
+.mail .bd p { margin: 0 }
+.mail .ft { padding: 10px 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted) }
+.var { font-family: var(--f-num); font-size: .86em; color: var(--blue) }
+.lockbox { border: 1px dashed var(--line); border-radius: 10px; padding: 14px; font-size: 13px; color: var(--muted) }
+.lockbox b { color: var(--fg) }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .2s; pointer-events: none }
+.toast.on { opacity: 1 }
+.foot { font-size: 12px; color: var(--muted); text-align: center }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important } .ph-feed { scroll-behavior: auto } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">rF</div>
+      <div>
+        <h1>rewalt: Flow</h1>
+        <p>Powered by Sales Success Engine · Kazakhstan &amp; Uzbekistan · UTC+5</p>
+      </div>
+    </div>
+    <span class="demo-tag"><b>Concept demo</b> · sample data · by CCGroup</span>
+  </header>
+
+  <!-- ===== SIMULATION ===== -->
+  <section class="sim" aria-labelledby="sim-title">
+    <div class="sim-head">
+      <div>
+        <div class="eyebrow">Live simulation</div>
+        <h2 id="sim-title">Watch one ad click become a funded client</h2>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="play">▶ Play</button>
+        <button class="btn" id="back" aria-label="Previous step">←</button>
+        <button class="btn" id="fwd" aria-label="Next step">→</button>
+        <button class="btn" id="restart">Restart</button>
+      </div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+    <div class="sim-body">
+      <div class="phone" aria-label="The lead's phone">
+        <div class="screen">
+          <div class="ph-bar"><div class="ph-av">M</div><div><b>Madina · rewalt</b><small>WhatsApp · Almaty</small></div></div>
+          <div class="ph-feed" id="phfeed" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="con">
+        <div class="clockrow">
+          <div class="clock" id="clock">14:02<small id="day">Day 1</small></div>
+          <div class="caption" id="caption"></div>
+        </div>
+        <div class="journey" id="sjourney"></div>
+        <div id="salert"></div>
+        <div class="con-grid">
+          <div class="box"><h4>What rewalt's system did</h4><ul class="log" id="slog"></ul></div>
+          <div class="box"><h4>Aigerim N. · lead file</h4>
+            <div class="stat">
+              <div><span>Lead score</span><span class="v gold" id="s-score">10</span></div>
+              <div><span>Automated messages</span><span class="v" id="s-msgs">0</span></div>
+              <div><span>Human calls</span><span class="v" id="s-calls">0</span></div>
+              <div><span>AI call score</span><span class="v" id="s-ai">—</span></div>
+            </div>
+          </div>
+        </div>
+        <div id="ssummary"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpis" aria-label="Today at a glance">
+    <div class="kpi"><span class="lbl">New leads today</span><span class="val">96</span><span class="sub">KZ 41 · UZ 55</span></div>
+    <div class="kpi"><span class="lbl">First response</span><span class="val">38 s</span><span class="sub good">median · target &lt; 60 s</span></div>
+    <div class="kpi"><span class="lbl">Calls due now</span><span class="val" id="k-due">4</span><span class="sub">triggered by lead actions</span></div>
+    <div class="kpi"><span class="lbl">Verified this week</span><span class="val">112</span><span class="sub">accounts, no deposit yet</span></div>
+    <div class="kpi"><span class="lbl">Funded this month</span><span class="val" id="k-funded">24</span><span class="sub">at the USD 10,000 threshold</span></div>
+    <div class="kpi"><span class="lbl">AI call score</span><span class="val">71</span><span class="sub">team average / 100</span></div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" id="t-queue" aria-selected="true" aria-controls="v-queue">Call queue<span class="count">7</span></button>
+    <button class="tab" role="tab" id="t-funnel" aria-selected="false" aria-controls="v-funnel">Funnel &amp; automation</button>
+    <button class="tab" role="tab" id="t-ai" aria-selected="false" aria-controls="v-ai">AI call review</button>
+    <button class="tab" role="tab" id="t-res" aria-selected="false" aria-controls="v-res">Results</button>
+    <button class="tab" role="tab" id="t-play" aria-selected="false" aria-controls="v-play">Playbook</button>
+    <button class="tab" role="tab" id="t-eng" aria-selected="false" aria-controls="v-eng">Sales Success Engine</button>
+    <button class="tab" role="tab" id="t-case" aria-selected="false" aria-controls="v-case">Business case</button>
+    <button class="tab" role="tab" id="t-offer" aria-selected="false" aria-controls="v-offer">The offer</button>
+  </nav>
+
+  <section id="v-queue" role="tabpanel" aria-labelledby="t-queue">
+    <div class="split">
+      <div class="panel"><h2>Who to call next <small>sorted by lead score</small></h2><div class="queue" id="queue"></div></div>
+      <div class="panel" id="ws" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="v-funnel" role="tabpanel" aria-labelledby="t-funnel" hidden>
+    <div class="ov">
+      <div class="panel">
+        <h2>Lead to funded account <small>planning model · per 2,000 leads a month</small></h2>
+        <div class="funnel" id="funnel"></div>
+        <p class="fine" style="margin:14px 0 0">Replaced with live data from week 5. Each bar is the share of all leads that reach the stage.</p>
+      </div>
+      <div class="panel">
+        <h2>Automation rules <small>fired today</small></h2>
+        <ul class="rules">
+          <li><span>Lead submits the landing form</span><span class="then">Welcome via SMS + WhatsApp (KZ) / Telegram (UZ) + email</span><span class="fired">96</span></li>
+          <li><span>Intro session watched</span><span class="then">Call 1 alert to the assigned caller</span><span class="fired">38</span></li>
+          <li><span>Account verified</span><span class="then">Starter pack: 7 videos + profile form</span><span class="fired">21</span></li>
+          <li><span>First video or demo opened</span><span class="then">Call 2 alert</span><span class="fired">17</span></li>
+          <li><span>Webinar attended or replayed</span><span class="then">Call 3 task within 24 h</span><span class="fired">6</span></li>
+          <li><span>No progress for 7 days</span><span class="then">Follow-up email; last-chance call at day 14</span><span class="fired">29</span></li>
+          <li><span>Lead untouched for 15 min</span><span class="then">Alert to team lead</span><span class="fired">0</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-ai" role="tabpanel" aria-labelledby="t-ai" hidden>
+    <div class="review">
+      <div class="panel">
+        <h2>Call 1 · Welcome <small>Caller: Madina · 9 min 42 s</small></h2>
+        <div class="big num">74<small> / 100</small></div>
+        <p class="fine" style="margin:6px 0 14px">Lead: Aigerim N. · Almaty · scored automatically 3 minutes after the call ended</p>
+        <div class="crit">
+          <div class="row"><span>Permission opening</span><span class="num">9/10</span><span class="mtr"><i style="width:90%"></i></span></div>
+          <div class="row low"><span>Discovery: real motive found</span><span class="num">5/10</span><span class="mtr"><i style="width:50%"></i></span></div>
+          <div class="row"><span>Trust answer with facts</span><span class="num">8/10</span><span class="mtr"><i style="width:80%"></i></span></div>
+          <div class="row"><span>Guided registration on the call</span><span class="num">8/10</span><span class="mtr"><i style="width:80%"></i></span></div>
+          <div class="row low"><span>Next step with day and time</span><span class="num">6/10</span><span class="mtr"><i style="width:60%"></i></span></div>
+        </div>
+      </div>
+      <div class="panel" style="display:grid;gap:16px">
+        <div class="box"><h4>Compliance checks</h4>
+          <ul class="checks">
+            <li><span class="ok">✓</span><span>Recording notice given at the start</span></li>
+            <li><span class="ok">✓</span><span>Risk line said before the demo was opened</span></li>
+            <li><span class="ok">✓</span><span>No promise or figure of profit</span></li>
+            <li><span class="no">!</span><span>Licence number not stated when the lead asked "is this safe?"</span></li>
+          </ul>
+        </div>
+        <div class="box"><h4>3 fixes for the next call</h4>
+          <ol class="fixes">
+            <li>Ask the motive question before explaining the demo.<q>"What made you click on our ad — what are you hoping this could change for you?"</q></li>
+            <li>Answer "is it safe" with the licence and segregated funds, not with reassurance.<q>"We are licensed by the Seychelles FSA, licence SD044, and client money is kept separately."</q></li>
+            <li>Close on a day and time, not "I'll call you later".<q>"I'll call you Thursday at 19:00 to see how the demo feels. Does that work?"</q></li>
+          </ol>
+        </div>
+        <div class="box"><h4>Transcript excerpt <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· translated from Russian</span></h4>
+          <div class="transcript">
+            <p><span class="who">CALLER</span>Hello Aigerim, this is Madina from rewalt. You watched our introduction about an hour ago — do you have five minutes?</p>
+            <p><span class="who">LEAD</span>Yes, but honestly I'm not sure. How do I know this is safe?</p>
+            <p><span class="who">CALLER</span><mark>Don't worry, we're a serious company, many people trust us.</mark></p>
+            <p><span class="who">LEAD</span>Okay… what do I need to do?</p>
+            <p><span class="who">CALLER</span>We open your account and a demo with virtual money, no deposit. One honest thing: trading CFDs uses leverage, and you can lose money — that's why we start on the demo.</p>
+            <p><span class="who">CALLER</span><mark>Great, I'll call you later then.</mark></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-res" role="tabpanel" aria-labelledby="t-res" hidden>
+    <div class="res">
+      <div class="panel wide">
+        <h2>Launch progress <small>weekly gates · sample at week 12 · all passed</small></h2>
+        <div class="gates" id="gates"></div>
+      </div>
+      <div class="panel">
+        <h2>Operating KPIs <small>this week vs target</small></h2>
+        <div class="tbl-wrap"><table class="tbl" id="kpitbl"></table></div>
+      </div>
+      <div class="panel chart">
+        <h2>Funded accounts per week <small>sample · target 5 a week</small></h2>
+        <div id="fchart"></div>
+      </div>
+      <div class="panel">
+        <h2>By market and campaign <small>last 4 weeks · sample</small></h2>
+        <div class="tbl-wrap"><table class="tbl" id="camptbl"></table></div>
+        <p class="fine" style="margin:10px 0 0">Verified and funded events go back to the ad platforms, so budget moves to the campaigns that fund, not the ones that click.</p>
+      </div>
+      <div class="panel">
+        <h2>Callers <small>this week · sample</small></h2>
+        <div class="tbl-wrap"><table class="tbl" id="calltbl"></table></div>
+        <p class="fine" style="margin:10px 0 0">Below 70 on the AI score means extra role-play practice the next morning, not a warning.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-play" role="tabpanel" aria-labelledby="t-play" hidden>
+    <div class="pb">
+      <div class="panel">
+        <h2>The playbook <small>in preparation · weeks 2–4</small></h2>
+        <div class="pb-list" id="pblist"></div>
+      </div>
+      <div class="panel pb-doc" id="pbdoc" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="v-eng" role="tabpanel" aria-labelledby="t-eng" hidden>
+    <div style="display:grid;gap:16px">
+      <div class="panel eng-hero">
+        <div style="display:grid;gap:10px">
+          <div class="kind" style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:600">CCGroup · Sales Success Engine</div>
+          <h3>Everything a rewalt caller needs, in one place, built on rewalt's own products and playbook</h3>
+          <p class="muted" style="margin:0;max-width:60ch">The AI layer that sits on top of Kommo. Callers use it on every call and every morning; managers use it to see who needs what, and to assign it.</p>
+        </div>
+        <div class="eng-line">
+          <div><b>The CRM</b><span>records what happened</span></div>
+          <div><b>Training</b><span>teaches what should happen</span></div>
+          <div><b>The Engine</b><span>shows what should happen next</span></div>
+        </div>
+      </div>
+      <div class="brains">
+        <div class="panel brain">
+          <h4>Product Brain · what rewalt sells</h4>
+          <p>Loaded from rewalt's own material and approved by compliance.</p>
+          <ul>
+            <li>Account types, minimums and the free $10,000 demo</li>
+            <li>Copy trading and its risk controls</li>
+            <li>Platforms: MetaTrader 5, web portal, mobile apps</li>
+            <li>Licence, client-fund protection, deposits and withdrawals</li>
+            <li>Approved risk wording and the never-say list</li>
+          </ul>
+        </div>
+        <div class="panel brain">
+          <h4>Sales Brain · how rewalt sells</h4>
+          <p>The journey and playbook from this project, kept up to date.</p>
+          <ul>
+            <li>The 7-stage journey and the 3 triggered calls</li>
+            <li>12 call scripts and the objection bank</li>
+            <li>The four tracks: investor, self-trader, partner, explorer</li>
+            <li>Scoring rules used for every recorded call</li>
+            <li>What the best callers say that the others don't</li>
+          </ul>
+        </div>
+      </div>
+      <div class="eng-three">
+        <div class="panel">
+          <h2>Ask anything <small>during a call</small></h2>
+          <div class="chatbox">
+            <div class="chatq">Lead asks how fast he can withdraw. What do I say?</div>
+            <div class="chata"><span>Average withdrawal approval is about 3 minutes, with same-day withdrawals available. Then return to the next step: opening the demo.</span>
+              <span class="srcs"><span class="chip">Product Brain</span><span class="chip plain">compliance-approved</span></span></div>
+          </div>
+          <p class="fine" style="margin:10px 0 0">Answers only from approved material. If it isn't there, it says so.</p>
+        </div>
+        <div class="panel">
+          <h2>Practise daily <small>AI role-play</small></h2>
+          <div class="rp">
+            <div class="who"><div class="ph-av">R</div><div><b>Rustam, 42, Tashkent</b><br><span class="muted">Sceptic · lost money with another broker</span></div></div>
+            <div class="stat">
+              <div><span>Score this morning</span><span class="v gold">78</span></div>
+              <div><span>Weakest skill</span><span>Trust answer</span></div>
+              <div><span>Practice streak</span><span class="num">9 days</span></div>
+            </div>
+          </div>
+          <p class="fine" style="margin:10px 0 0">Profiles in Russian, Kazakh and Uzbek. 20 minutes before the first call.</p>
+        </div>
+        <div class="panel">
+          <h2>Manage the team <small>team lead view</small></h2>
+          <ul class="mgr">
+            <li><span>Jasur · role-play "Is it a scam?" ×3</span><span class="chip gold">assigned</span></li>
+            <li><span>Aliya · module 6: the Decision call</span><span class="chip">in progress</span></li>
+            <li><span>Madina · certified for Call 3</span><span class="chip plain">done</span></li>
+            <li><span>New hire · product test</span><span class="chip">due Fri</span></li>
+          </ul>
+          <p class="fine" style="margin:10px 0 0">Delegate tasks, assign trainings and role-plays, track progress.</p>
+        </div>
+      </div>
+      <div class="bonus-strip">
+        <span><b>Included as a launch bonus</b> when the package is signed by 30 Oct 2026 · value €3,500 · installed on rewalt's systems</span>
+        <button class="btn primary" data-go="offer">See the offer</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-case" role="tabpanel" aria-labelledby="t-case" hidden>
+    <div class="bc">
+      <div class="panel">
+        <h2>Your numbers <small>move the sliders</small></h2>
+        <div class="in">
+          <label for="r-leads"><span class="lr"><span>Leads per month</span><output id="o-leads"></output></span><input type="range" id="r-leads" min="500" max="10000" step="250" value="2000"></label>
+          <label for="r-base"><span class="lr"><span>Lead → funded today (no system)</span><output id="o-base"></output></span><input type="range" id="r-base" min="0.1" max="2" step="0.1" value="0.5"></label>
+          <label for="r-sys"><span class="lr"><span>Lead → funded with the system</span><output id="o-sys"></output></span><input type="range" id="r-sys" min="0.2" max="3" step="0.1" value="1"></label>
+          <label for="r-rev"><span class="lr"><span>Net revenue per funded client</span><output id="o-rev"></output></span><input type="range" id="r-rev" min="200" max="5000" step="100" value="800"></label>
+        </div>
+        <p class="fine" style="margin:16px 0 0">Defaults are the planning assumptions from the proposal. rewalt's finance team should set the revenue per client.</p>
+      </div>
+      <div class="panel out">
+        <h2>What the system adds <small>per month</small></h2>
+        <div><div class="hero-n" id="c-extra"></div><div class="muted">extra funded clients every month, from the same ad budget</div></div>
+        <div class="row2">
+          <div class="cell"><b id="c-rev"></b><span>extra net revenue per month</span></div>
+          <div class="cell"><b id="c-year"></b><span>extra net revenue in 12 months</span></div>
+          <div class="cell"><b id="c-pay"></b><span>to repay the €8,000 package</span></div>
+          <div class="cell"><b id="c-roi"></b><span>return on the package in year 1</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-offer" role="tabpanel" aria-labelledby="t-offer" hidden>
+    <div class="offer">
+      <div class="panel">
+        <h2>rewalt: Flow, live in 8 weeks <small>2 hours per working day</small></h2>
+        <div class="weeks">
+          <div class="wk"><b>W1</b><span>Design and KPI map</span></div>
+          <div class="wk"><b>W2</b><span>Kommo and content scripts</span></div>
+          <div class="wk"><b>W3</b><span>Automation and call scripts</span></div>
+          <div class="wk"><b>W4</b><span>Webinars and AI tools</span></div>
+          <div class="wk live"><b>W5</b><span>Online Bootcamp, then first real leads</span></div>
+          <div class="wk"><b>W6</b><span>Live-call coaching</span></div>
+          <div class="wk"><b>W7</b><span>Certification and KPIs</span></div>
+          <div class="wk"><b>W8</b><span>Hand-over to the team</span></div>
+        </div>
+        <h2 style="margin-top:20px">What rewalt gets</h2>
+        <ul class="gets">
+          <li>The 7-stage journey with 3 triggered calls, mapped and running</li>
+          <li>Kommo set up: pipeline, call queue, WhatsApp, Telegram, SMS, recorded calls</li>
+          <li>Up to 20 automated messages in Russian, Kazakh and Uzbek</li>
+          <li>12 call scripts and an objection bank, approved by compliance</li>
+          <li>A full-day Launch Online Bootcamp: every caller trained on the scripts before the first real call</li>
+          <li>Certified callers and a team lead who can run it without us</li>
+          <li>AI scoring of every call and an AI practice partner for the team</li>
+        </ul>
+      </div>
+      <div class="panel" style="display:grid;gap:16px;align-content:start">
+        <div>
+          <div style="font-size:18px;font-weight:700;letter-spacing:-.01em">rewalt: Flow</div>
+          <div class="fine">8-week launch package · powered by Sales Success Engine</div>
+          <div class="price">€8,000<small> + VAT</small></div>
+        </div>
+        <div class="bonus-strip" style="display:grid;gap:4px;justify-content:stretch">
+          <span style="font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);font-weight:600">Included · week 5</span>
+          <b style="font-size:16px">Launch Online Bootcamp with Edgars Untals</b>
+          <span style="font-size:13px">One full day of live training before the first real call: every script, the objection bank and live role-play. Ends with a launch certification. No certification, no calls.</span>
+          <span class="fine">Online as standard · on site in Almaty or Tashkent as an option</span>
+        </div>
+        <div>
+          <h4 style="margin:0 0 8px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">All costs</h4>
+          <ul class="bon">
+            <li><span>Design, CEO reporting, KPI reviews · 14 h</span><span class="num" style="color:var(--fg)">€1,400</span></li>
+            <li><span>Kommo set-up, automation, AI tools · 27 h</span><span class="num" style="color:var(--fg)">€2,700</span></li>
+            <li><span>Call scripts and message copy · 19 h</span><span class="num" style="color:var(--fg)">€1,900</span></li>
+            <li><span>Online Bootcamp, coaching, certification · 20 h</span><span class="num" style="color:var(--fg)">€2,000</span></li>
+            <li style="font-weight:600"><span>rewalt: Flow · 8-week package · 80 h</span><span class="num" style="color:var(--fg)">€8,000</span></li>
+          </ul>
+          <ul class="bon" style="margin-top:12px">
+            <li><span>Optional: Bootcamp on site, Almaty or Tashkent</span><span class="num" style="color:var(--muted)">+€1,200 + travel</span></li>
+            <li><span>Optional after week 8: Core / Growth support</span><span class="num" style="color:var(--muted)">€2,000 / €4,000 a month</span></li>
+            <li><span>Kommo licences, 5 users · paid by rewalt</span><span class="num" style="color:var(--muted)">≈ $175 a month</span></li>
+            <li><span>Messaging, SMS, calls, AI usage · paid by rewalt</span><span class="num" style="color:var(--muted)">by volume</span></li>
+          </ul>
+          <p class="fine" style="margin:8px 0 0">All CCGroup prices + VAT. Kommo: Advanced plan, 6-month minimum term. Provider costs estimated in week 1.</p>
+        </div>
+        <div>
+          <h4 style="margin:0 0 8px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Launch bonuses · signed by 30 Oct 2026</h4>
+          <ul class="bon">
+            <li><span>Sales Success Engine for the call team</span><span class="num">€3,500</span></li>
+            <li><span>AI caller hiring kit</span><span class="num">€400</span></li>
+            <li><span>Month-3 support, up to 5 hours</span><span class="num">€500</span></li>
+          </ul>
+          <p class="fine" style="margin:10px 0 0">Total value €12,400.</p>
+        </div>
+        <div class="box">
+          <h4>Contact</h4>
+          <div style="font-size:13.5px;display:grid;gap:2px"><b>Edgars Untals · CCGroup</b><span class="muted">edgars@ccgroup.lv · +371 27722408 · www.ccgroup.lv</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">rewalt: Flow, powered by CCGroup's Sales Success Engine. Concept demo prepared by CCGroup for rewalt. All names and figures are sample data or planning assumptions. In production this runs on Kommo with CCGroup's AI layer.</p>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" })[m]);
+const STAGES = ["Ad → landing", "Welcome", "Intro session", "Account + demo", "Starter pack", "Webinar", "Funded"];
+
+/* ================= SIMULATION ================= */
+const SIM = [
+  { clock: "14:02", day: "Day 1", stage: 0, score: 10, caption: "Aigerim taps a Facebook ad and leaves her name and number.",
+    phone: [{ t: "day", text: "Day 1 · 14:02" }, { t: "form" }],
+    log: [["14:02:00", "Lead created · Facebook · KZ-safety-02 · caller Madina assigned", "sys"]] },
+  { clock: "14:02:38", day: "Day 1", stage: 1, score: 15, msgs: 2, caption: "38 seconds later she has a personal welcome and the intro link.",
+    phone: [{ t: "msg", src: "WhatsApp", text: "Hello Aigerim, this is Madina from rewalt. Your 25-minute introduction is here: rewalt.co/intro. I'll call after you've watched it.", time: "14:02" },
+            { t: "email", subj: "Your introduction to rewalt is ready", time: "14:02" }],
+    log: [["14:02:38", "Welcome sent · WhatsApp + email · 38 s", "sys"]] },
+  { clock: "14:46", day: "Day 1", stage: 2, score: 40, caption: "She watches the introduction. The system tells Madina to call now.",
+    phone: [{ t: "video", title: "Introduction to rewalt", note: "Watched · 24 of 25 min", time: "14:46" }],
+    log: [["14:46", "Intro watched · score 15 → 40", "sys"], ["14:46", "Call 1 alert sent to Madina", "sys"]],
+    alert: ["Call now · Aigerim N.", "Watched the full introduction 1 minute ago · script: Call 1 · Welcome"] },
+  { clock: "14:49", day: "Day 1", stage: 3, score: 60, calls: 1, ai: 74, caption: "Madina calls. They open and verify the account together, no deposit.",
+    phone: [{ t: "call", text: "Call with Madina · 9:42" }, { t: "msg", src: "WhatsApp", text: "Verified, Aigerim. Your $10,000 demo account and 7 starter videos are ready. Start with video 1 — 10 minutes.", time: "14:59" }],
+    log: [["14:49", "Call 1 · recorded · account opened and verified", "hum"], ["14:59", "Starter pack sent · demo account active", "sys"], ["15:02", "AI call score 74/100 · 3 fixes sent to Madina", "sys"]],
+    msgs: 1 },
+  { clock: "20:15", day: "Day 2", stage: 4, score: 72, caption: "Next evening she opens video 1 and tries the demo with virtual money.",
+    phone: [{ t: "day", text: "Day 2 · 20:15" }, { t: "video", title: "1 · How the platform works", note: "Watched · demo opened", time: "20:15" }],
+    log: [["Day 2 20:15", "Video 1 + demo opened · score 60 → 72", "sys"], ["Day 2 20:15", "Call 2 queued for 11:00 tomorrow (after working hours)", "sys"]] },
+  { clock: "11:00", day: "Day 3", stage: 5, score: 80, calls: 1, msgs: 1, caption: "Call 2: three questions place her on the Investor track. Webinar booked.",
+    phone: [{ t: "day", text: "Day 3 · 11:00" }, { t: "call", text: "Call with Madina · 7:18" }, { t: "msg", src: "WhatsApp", text: "Confirmed: Copy trading session, Thursday 19:00. I'll send the link the day before.", time: "11:09" }],
+    log: [["Day 3 11:00", "Call 2 · profile done · Track A · Investor", "hum"], ["Day 3 11:09", "Investor webinar booked · reminders scheduled", "sys"]] },
+  { clock: "19:00", day: "Day 5", stage: 5, score: 88, msgs: 2, caption: "Reminders bring her to the live investor webinar.",
+    phone: [{ t: "day", text: "Day 5" }, { t: "msg", src: "WhatsApp", text: "Starting in 1 hour: your copy trading session.", time: "18:00" }, { t: "video", title: "Live · Copy trading session", note: "Attended · 52 min", time: "19:00" }],
+    log: [["Day 4 19:00", "Reminder −24 h sent", "sys"], ["Day 5 18:00", "Reminder −1 h sent", "sys"], ["Day 5 19:52", "Attended · Call 3 task for tomorrow", "sys"]] },
+  { clock: "12:30", day: "Day 6", stage: 6, score: 95, calls: 1, msgs: 1, funded: true, caption: "Call 3: a plan in her own words. She funds the account and books mentoring.",
+    phone: [{ t: "day", text: "Day 6 · 12:30" }, { t: "call", text: "Call with Madina · 14:05" }, { t: "email", subj: "Welcome. Your first mentoring session", time: "12:51" }],
+    log: [["Day 6 12:30", "Call 3 · plan agreed", "hum"], ["Day 6 12:48", "Funded at the USD 10,000 threshold", "hum"], ["Day 6 12:51", "Mentoring session booked · welcome email sent", "sys"]] }
+];
+let simStep = -1, timer = null;
+const simTotals = () => {
+  let m = 0, c = 0;
+  for (let i = 0; i <= simStep; i++) { m += SIM[i].msgs || 0; c += SIM[i].calls || 0; }
+  return { m, c };
+};
+function phoneItem(it) {
+  if (it.t === "day") return `<div class="ph-day">${esc(it.text)}</div>`;
+  if (it.t === "form") return `<div class="bub me card"><div class="src">Facebook ad · form</div><div class="field"><span>Name</span><b>Aigerim</b></div><div class="field"><span>Phone</span><b>+7 7•• ••• 41 08</b></div><div class="field" style="border:0"><span>Language</span><b>Русский</b></div><div class="meta"><span>Submitted</span><span>14:02</span></div></div>`;
+  if (it.t === "msg") return `<div class="bub"><div class="src">${esc(it.src)}</div>${esc(it.text)}<div class="meta"><span>Madina</span><span>${esc(it.time)}</span></div></div>`;
+  if (it.t === "email") return `<div class="bub card"><div class="src">Email</div><b>${esc(it.subj)}</b><div class="meta"><span>rewalt</span><span>${esc(it.time)}</span></div></div>`;
+  if (it.t === "video") return `<div class="bub card"><div class="vid" aria-hidden="true">▶</div><b>${esc(it.title)}</b><div class="meta"><span>${esc(it.note)}</span><span>${esc(it.time)}</span></div></div>`;
+  if (it.t === "call") return `<div class="bub call">📞 ${esc(it.text)}</div>`;
+  return "";
+}
+function renderSim() {
+  const feed = $("#phfeed"), log = $("#slog");
+  if (simStep < 0) {
+    feed.innerHTML = `<div class="ph-day">Press Play</div>`;
+    log.innerHTML = `<li><time>—</time><span class="muted">Nothing yet. Press Play to start.</span></li>`;
+    $("#clock").firstChild.nodeValue = "14:02"; $("#day").textContent = "Day 1";
+    $("#caption").textContent = "One real-looking lead, from ad click to funded account, in eight steps.";
+    $("#sjourney").innerHTML = STAGES.map(n => `<div class="step"><div class="bar"></div><span>${esc(n)}</span></div>`).join("");
+    $("#salert").innerHTML = ""; $("#ssummary").innerHTML = "";
+    $("#s-score").textContent = "—"; $("#s-msgs").textContent = "0"; $("#s-calls").textContent = "0"; $("#s-ai").textContent = "—";
+    $("#prog").style.width = "0%"; $("#k-funded").textContent = "24";
+    return;
+  }
+  const s = SIM[simStep];
+  let ph = "", lg = [];
+  for (let i = 0; i <= simStep; i++) { SIM[i].phone.forEach(p => ph += phoneItem(p)); SIM[i].log.forEach(l => lg.push(l)); }
+  feed.innerHTML = ph; feed.scrollTop = feed.scrollHeight;
+  log.innerHTML = lg.reverse().map(([t, x, k]) => `<li><time>${esc(t)}</time><span class="${k}">${esc(x)}</span></li>`).join("");
+  $("#clock").firstChild.nodeValue = s.clock; $("#day").textContent = s.day;
+  $("#caption").textContent = s.caption;
+  $("#sjourney").innerHTML = STAGES.map((n, i) => `<div class="step ${i < s.stage ? "done" : i === s.stage ? "now" : ""}"><div class="bar"></div><span>${esc(n)}</span></div>`).join("");
+  $("#salert").innerHTML = s.alert ? `<div class="alert"><span class="dot"></span><span>${esc(s.alert[0])}<small>${esc(s.alert[1])}</small></span></div>` : "";
+  const tot = simTotals();
+  $("#s-score").textContent = s.score; $("#s-msgs").textContent = tot.m; $("#s-calls").textContent = tot.c;
+  let ai = "—"; for (let i = 0; i <= simStep; i++) if (SIM[i].ai) ai = SIM[i].ai + "/100"; $("#s-ai").textContent = ai;
+  $("#prog").style.width = ((simStep + 1) / SIM.length * 100) + "%";
+  const done = simStep === SIM.length - 1;
+  $("#k-funded").textContent = done ? "25" : "24";
+  $("#ssummary").innerHTML = done ? `<div class="summary"><h3>6 days. ${tot.c} calls. ${tot.m} automated messages. Nothing forgotten.</h3>
+    <div class="facts"><div><b>38 s</b>first response</div><div><b>0</b>leads left waiting</div><div><b>100%</b>calls scored by AI</div></div>
+    <div class="controls"><button class="btn primary" data-go="case">See the business case →</button><button class="btn" data-go="offer">See the offer</button></div></div>` : "";
+  $("#back").disabled = simStep <= 0; $("#fwd").disabled = done;
+}
+function stop() { clearInterval(timer); timer = null; $("#play").textContent = "▶ Play"; }
+function step(d) { simStep = Math.max(-1, Math.min(SIM.length - 1, simStep + d)); renderSim(); if (simStep === SIM.length - 1) stop(); }
+$("#play").addEventListener("click", () => {
+  if (timer) return stop();
+  if (simStep === SIM.length - 1) simStep = -1;
+  step(1); $("#play").textContent = "❚❚ Pause";
+  timer = setInterval(() => step(1), 4200);
+});
+$("#fwd").addEventListener("click", () => { stop(); step(1); });
+$("#back").addEventListener("click", () => { stop(); step(-1); });
+$("#restart").addEventListener("click", () => { stop(); simStep = -1; renderSim(); });
+$("#ssummary").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) { show(b.dataset.go); document.querySelector(".tabs").scrollIntoView({ behavior: "smooth", block: "start" }); } });
+
+/* ================= QUEUE ================= */
+const SCRIPTS = {
+  1: { title: "Call 1 · Welcome", goal: "Register, verify and open the demo on this call", steps: [
+      ["Ask permission", ""],
+      ["Pace the doubt", ""],
+      ["Find the motive", ""],
+      ["Offer the free step", ""],
+      ["Do it together", ""],
+      ["Lock the next step", ""]] },
+  2: { title: "Call 2 · Activation", goal: "Profile form done and the right webinar booked", steps: [
+      ["Open from their action", ""],
+      ["Debrief the experience", ""],
+      ["Three profile questions", ""],
+      ["Name the track", ""],
+      ["Book the webinar", ""]] },
+  3: { title: "Call 3 · Decision", goal: "Funded account at the USD 10,000 threshold, academy start", steps: [
+      ["Recap their words", ""],
+      ["Connect to the webinar", ""],
+      ["Present the plan", ""],
+      ["Ask for the decision", ""],
+      ["If not now", ""]] },
+  0: { title: "Automated nurture", goal: "No call due. Monthly content until behaviour changes", steps: [
+      ["Monthly market note", ""],
+      ["Event invitations", ""],
+      ["Re-score on any action", ""]] }
+};
+const leads = [
+  { id: "dk", name: "Dilnoza Karimova", city: "Tashkent", c: "UZ", ch: "Telegram", score: 92, stage: 5, call: 3, track: "Investor", why: "Replayed investor webinar 22 min ago", due: "Due now",
+    feed: [["09:12","Lead from Instagram ad · UZ-investor-03",1],["09:12","Welcome sent via Telegram in 41 s",1],["10:05","Watched intro session (26 min)",0],["11:20","Call 1 · reached · verified on the call",0],["Mon","Demo opened · 3 videos watched",0],["14:38","Replayed investor webinar",0]] },
+  { id: "ts", name: "Timur Saidov", city: "Samarkand", c: "UZ", ch: "Telegram", score: 85, stage: 4, call: 2, track: "—", why: "Opened demo account 9 min ago", due: "Due now",
+    feed: [["Yesterday","Lead from TikTok ad · UZ-trader-01",1],["Yesterday","Welcome sent via Telegram in 33 s",1],["Yesterday","Call 1 · reached · account verified",0],["14:51","Starter pack sent",1],["14:51","Demo account opened",0]] },
+  { id: "an", name: "Aigerim Nurlanovna", city: "Almaty", c: "KZ", ch: "WhatsApp", score: 78, stage: 2, call: 1, track: "—", why: "Watched intro session 14 min ago", due: "Due now",
+    feed: [["14:02","Lead from Facebook ad · KZ-safety-02",1],["14:02","Welcome sent via WhatsApp in 38 s",1],["14:46","Watched intro session (24 min)",0]] },
+  { id: "sa", name: "Saule Akhmetova", city: "Astana", c: "KZ", ch: "WhatsApp", score: 61, stage: 4, call: 2, track: "—", why: "Watched starter video 1", due: "in 40 min",
+    feed: [["Fri","Lead from Instagram ad · KZ-academy-01",1],["Fri","Welcome sent via WhatsApp in 44 s",1],["Mon","Call 1 · reached · verified",0],["13:10","Starter video 1 watched",0]] },
+  { id: "az", name: "Arman Zhaksylykov", city: "Shymkent", c: "KZ", ch: "WhatsApp", score: 30, stage: 1, call: 1, track: "—", why: "New lead · intro not watched yet", due: "after intro",
+    feed: [["15:01","Lead from Facebook ad · KZ-safety-02",1],["15:01","Welcome sent via WhatsApp in 36 s",1],["15:01","Intro reminder scheduled for 15:00 tomorrow",1]] },
+  { id: "ky", name: "Kamila Yusupova", city: "Bukhara", c: "UZ", ch: "Telegram", score: 24, stage: 4, call: 0, track: "Explorer", why: "Explorer track · demo only", due: "nurture",
+    feed: [["Oct 12","Lead from Telegram ad · UZ-demo-01",1],["Oct 12","Call 1 · reached · demo opened",0],["Oct 14","Profile: wants to practise first",0],["Oct 15","Moved to Explorer track · monthly content",1]] },
+  { id: "br", name: "Bekzod Rakhimov", city: "Namangan", c: "UZ", ch: "Telegram", score: 12, stage: 1, call: 0, track: "—", why: "No answer to 3 attempts", due: "last call day 14",
+    feed: [["Oct 08","Lead from TikTok ad · UZ-trader-01",1],["Oct 08","Welcome sent via Telegram in 31 s",1],["Oct 09–11","3 call attempts · no answer",0],["Oct 15","Follow-up email sent",1]] }
+];
+let current = "dk";
+function renderQueue() {
+  $("#queue").innerHTML = leads.map(l => {
+    const cls = l.score >= 60 ? "hot" : l.score >= 30 ? "warm" : "";
+    return `<button class="lead" data-id="${l.id}" aria-current="${l.id === current}">
+      <span class="score ${cls}">${l.score}</span>
+      <span style="min-width:0;display:grid;gap:3px"><span class="name">${esc(l.name)}</span><span class="why">${esc(l.why)}</span>
+        <span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip plain">${l.c} · ${l.ch}</span><span class="chip">${esc(STAGES[l.stage])}</span></span></span>
+      <span class="due ${l.due === "Due now" ? "now" : "muted"}">${esc(l.due)}</span></button>`;
+  }).join("");
+  $("#k-due").textContent = leads.filter(l => l.due === "Due now").length;
+}
+function renderWorkspace() {
+  const l = leads.find(x => x.id === current), s = SCRIPTS[l.call];
+  const journey = STAGES.map((n, i) => `<div class="step ${i < l.stage ? "done" : i === l.stage ? "now" : ""}"><div class="bar"></div><span>${esc(n)}</span></div>`).join("");
+  const feed = l.feed.map(([t, x, sys]) => `<li><time>${esc(t)}</time><span class="${sys ? "sys" : ""}">${esc(x)}</span></li>`).join("");
+  const steps = s.steps.map(([b]) => `<li><b>${esc(b)}</b></li>`).join("");
+  const btns = l.call ? `<button class="btn primary" data-out="booked">Reached · next step booked</button><button class="btn" data-out="noanswer">No answer</button><button class="btn" data-out="later">Call later</button><button class="btn" data-out="lost">Not interested</button>`
+    : `<button class="btn" data-out="requeue">Move back to call queue</button>`;
+  $("#ws").innerHTML = `<div class="ws-head"><div><h3>${esc(l.name)}</h3><div class="meta"><span class="chip plain">${esc(l.city)}, ${l.c}</span><span class="chip plain">${esc(l.ch)}</span><span class="chip gold">Score ${l.score}</span>${l.track !== "—" ? `<span class="chip">Track: ${esc(l.track)}</span>` : ""}</div></div><span class="chip ${l.due === "Due now" ? "gold" : "plain"}">${esc(l.due)}</span></div>
+    <div class="journey">${journey}</div>
+    <div class="ws-grid"><div class="box script"><h4>${esc(s.title)}</h4><p style="margin:0 0 10px;font-size:13px"><b>Goal:</b> ${esc(s.goal)}</p><ol>${steps}</ol><div class="rule">Full script wording is in preparation and is loaded here in weeks 3–4.</div></div>
+      <div class="box"><h4>What this lead has done</h4><ul class="feed">${feed}</ul></div></div>
+    <div class="actions">${btns}</div><div class="next muted" id="next">Every outcome sets the next action and date automatically.</div>`;
+}
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("on"), 2400); }
+$("#queue").addEventListener("click", e => { const b = e.target.closest(".lead"); if (b) { current = b.dataset.id; renderQueue(); renderWorkspace(); } });
+$("#ws").addEventListener("click", e => {
+  const b = e.target.closest("[data-out]"); if (!b) return;
+  const l = leads.find(x => x.id === current), out = b.dataset.out;
+  const m = { booked: ["Next step booked · reminder sent on " + l.ch, "Next step booked"], noanswer: ["Retry in 2 h, then a " + l.ch + " message", "Attempt logged"],
+    later: ["Callback set for tomorrow 10:00 local time", "Callback scheduled"], lost: ["Lost reason requested · moved to monthly nurture", "Moved to nurture"],
+    requeue: ["Re-scored and returned to the call queue", "Back in the queue"] }[out];
+  if (out === "booked") l.due = "booked"; if (out === "later") l.due = "tomorrow 10:00"; if (out === "noanswer") l.due = "retry 2 h";
+  if (out === "lost") { l.due = "nurture"; l.call = 0; l.score = Math.min(l.score, 20); }
+  if (out === "requeue") { l.due = "Due now"; l.call = 1; l.score = 55; }
+  leads.sort((a, b) => b.score - a.score); renderQueue(); renderWorkspace();
+  $("#next").textContent = m[0]; toast(m[1] + " (demo)");
+});
+
+/* ================= FUNNEL ================= */
+const F = [["Lead submitted", 2000], ["Intro watched or reached", 800], ["Registered and verified", 400], ["Starter pack engaged", 280], ["Attended a segment webinar", 120], ["Funded at USD 10,000", 20]];
+$("#funnel").innerHTML = F.map(([n, v], i) => {
+  const drop = i ? `<span class="drop">${Math.round(v / F[i-1][1] * 100)}% of the stage before carry on</span>` : "";
+  return `<div class="frow"><span>${esc(n)}</span><span class="ftrack"><span class="ffill" style="width:${Math.max(v / F[0][1] * 100, 1.2)}%"></span></span><span class="n num">${v.toLocaleString("en")}</span>${drop}</div>`;
+}).join("");
+
+/* ================= BUSINESS CASE ================= */
+const PKG = 8000;
+const eur = n => "€" + Math.round(n).toLocaleString("en");
+function calc() {
+  const leadsN = +$("#r-leads").value, base = +$("#r-base").value, sys = +$("#r-sys").value, rev = +$("#r-rev").value;
+  $("#o-leads").textContent = leadsN.toLocaleString("en"); $("#o-base").textContent = base.toFixed(1) + "%";
+  $("#o-sys").textContent = sys.toFixed(1) + "%"; $("#o-rev").textContent = eur(rev);
+  const extra = leadsN * (sys - base) / 100, mrev = extra * rev;
+  $("#c-extra").textContent = extra > 0 ? "+" + (Math.round(extra * 10) / 10).toLocaleString("en") : "0";
+  $("#c-rev").textContent = eur(Math.max(mrev, 0)); $("#c-year").textContent = eur(Math.max(mrev * 12, 0));
+  $("#c-pay").textContent = mrev > 0 ? Math.max(1, Math.ceil(PKG / (mrev / 30))) + " days" : "—";
+  $("#c-roi").textContent = mrev > 0 ? Math.round((mrev * 12) / PKG) + "×" : "—";
+}
+["#r-leads", "#r-base", "#r-sys", "#r-rev"].forEach(id => $(id).addEventListener("input", calc));
+
+/* ================= RESULTS ================= */
+const GATES = [["Journey map and KPI targets signed off", "done"], ["Kommo pipeline running in test", "done"], ["Test lead passes every automated step", "done"],
+  ["Scripts approved; AI scoring works", "done"], ["Bootcamp passed; first response under 60 s", "done"], ["Every caller reviewed on 5 calls", "done"],
+  ["All callers certified; first funnel report", "done"], ["Hand-over; 30/60/90 plan accepted", "done"]];
+$("#gates").innerHTML = GATES.map(([t, s], i) => `<div class="gate ${s}"><b><span>W${i + 1}</span>${s === "done" ? "<i>✓ passed</i>" : s === "now" ? "<span>this week</span>" : ""}</b><span>${esc(t)}</span></div>`).join("");
+const KPIS = [["First response under 60 s", "100%", "99.6%", "on"], ["First call after a trigger", "< 15 min", "11 min", "on"], ["Leads reached in 3 attempts", "≥ 60%", "54%", "off"],
+  ["Leads with a next action", "100%", "97%", "watch"], ["Webinar show-up (of booked)", "≥ 40%", "46%", "on"], ["Average AI call score", "≥ 70", "71", "on"]];
+const PILL = { on: "On track", watch: "Watch", off: "Below target" };
+$("#kpitbl").innerHTML = `<thead><tr><th>KPI</th><th class="r">Target</th><th class="r">Now</th><th>Status</th></tr></thead><tbody>` +
+  KPIS.map(([k, t, v, s]) => `<tr><td>${esc(k)}</td><td class="r">${esc(t)}</td><td class="r">${esc(v)}</td><td><span class="pill ${s}">${PILL[s]}</span></td></tr>`).join("") + `</tbody>`;
+const CAMP = [["KZ · Facebook · safety", 520, "22%", 7, "€610"], ["UZ · Telegram · investor", 610, "24%", 8, "€540"], ["UZ · TikTok · trader", 690, "13%", 4, "€1,480"], ["KZ · Instagram · academy", 380, "18%", 5, "€720"]];
+$("#camptbl").innerHTML = `<thead><tr><th>Campaign</th><th class="r">Leads</th><th class="r">Verified</th><th class="r">Funded</th><th class="r">Cost / funded</th></tr></thead><tbody>` +
+  CAMP.map(([c, l, v, f, cpf]) => `<tr><td>${esc(c)}</td><td class="r">${l.toLocaleString("en")}</td><td class="r">${v}</td><td class="r">${f}</td><td class="r">${cpf}</td></tr>`).join("") + `</tbody>`;
+const CALLERS = [["Madina", "KZ · RU/KZ", 214, "61%", 74, 2], ["Sardor", "UZ · RU/UZ", 238, "57%", 73, 2], ["Aliya", "KZ · RU/KZ", 196, "53%", 71, 2], ["Jasur", "UZ · UZ", 205, "45%", 66, 1]];
+$("#calltbl").innerHTML = `<thead><tr><th>Caller</th><th class="r">Calls</th><th class="r">Reached</th><th class="r">AI score</th><th class="r">Funded</th></tr></thead><tbody>` +
+  CALLERS.map(([n, m, c, r, a, f]) => `<tr><td>${esc(n)}<br><span class="muted" style="font-size:11.5px">${esc(m)}</span></td><td class="r">${c}</td><td class="r">${r}</td><td class="r"${a < 70 ? ' style="color:var(--warn)"' : ""}>${a}</td><td class="r">${f}</td></tr>`).join("") + `</tbody>`;
+(function chart() {
+  const data = [["W5", 1], ["W6", 2], ["W7", 4], ["W8", 4], ["W9", 5], ["W10", 6], ["W11", 6], ["W12", 7]], target = 5, max = 8;
+  const W = 480, H = 220, L = 28, R = 12, T = 14, B = 28, cw = (W - L - R) / data.length, y = v => T + (H - T - B) * (1 - v / max);
+  let g = "";
+  [0, 2, 4, 6, 8].forEach(v => g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`);
+  data.forEach(([w, v], i) => {
+    const x = L + i * cw + cw * .2, bw = cw * .6, last = i === data.length - 1;
+    g += `<rect x="${x}" y="${y(v)}" width="${bw}" height="${y(0) - y(v)}" rx="3" fill="${last ? "var(--gold)" : "var(--blue)"}" opacity="${last ? 1 : .8}"/>`;
+    g += `<text x="${x + bw / 2}" y="${H - 10}" text-anchor="middle">${w}</text>`;
+    if (last) g += `<text class="lab" x="${x + bw / 2}" y="${y(v) - 6}" text-anchor="middle">${v}</text>`;
+  });
+  g += `<line x1="${L}" x2="${W - R}" y1="${y(target)}" y2="${y(target)}" stroke="var(--gold)" stroke-width="1.25" stroke-dasharray="5 4"/>`;
+  g += `<text class="lab" x="${L + 4}" y="${y(target) - 6}">target 5</text>`;
+  $("#fchart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Funded accounts per week rise from 1 in week 5 to 7 in week 12, passing the target of 5 in week 9">${g}</svg>`;
+})();
+
+/* ================= PLAYBOOK ================= */
+const PB = {
+  calls: [["1","Welcome call",3],["2","Welcome call — intro not watched",3],["3","Activation — demo first",3],["4","Activation — videos first",3],
+    ["5","Decision — Investor track",4],["6","Decision — Self-trader track",4],["7","Partner qualification",4],["8","No-show recovery",4],
+    ["9","Last-chance call",4],["10","Objection bank · 12 handlers",3],["11","Message sequences",2],["12","Intro, video and webinar scripts",2]],
+  msgs: [["1","Welcome · under 60 seconds",2],["2–4","Intro reminders and trust questions",2],["5","What happens next · intro watched",2],["6–7","Verification guide and nudge",2],
+    ["8","Verified · starter pack",3],["9–11","Video nudge and track invitations",3],["12–14","Webinar booking, reminders, replay",3],["15–16","Funded welcome · decision recap",4],["17–20","Recovery and monthly nurture",4]]
+};
+const pbItem = ([n, t, w]) => `<div class="pb-item locked"><span class="n">${n}</span><span class="t">${esc(t)}</span><span class="tag">Week ${w}</span></div>`;
+$("#pblist").innerHTML = `<div class="pb-group"><h4><span>Call scripts</span><span>12 scripts · 12 objections</span></h4><div class="pb-items">${PB.calls.map(pbItem).join("")}</div></div>
+  <div class="pb-group"><h4><span>Email and messenger</span><span>20 messages × 3 languages</span></h4><div class="pb-items">${PB.msgs.map(pbItem).join("")}</div></div>`;
+$("#pbdoc").innerHTML = `<div class="kind">In preparation</div><h3>The playbook is being written for rewalt</h3>
+  <div class="when">Built from rewalt's products, licence and risk wording — not from a template.</div>
+  <ul class="checks">
+    <li><span class="ok">✓</span><span>12 call scripts, one for every trigger in the journey, plus 12 objection handlers</span></li>
+    <li><span class="ok">✓</span><span>20 automated messages — email, WhatsApp, Telegram and SMS</span></li>
+    <li><span class="ok">✓</span><span>Russian master, adapted into Kazakh and Uzbek with native speakers</span></li>
+    <li><span class="ok">✓</span><span>Every line approved by rewalt compliance before the first real lead</span></li>
+    <li><span class="ok">✓</span><span>Scripts loaded into the call screen and the AI trainer, so callers practise them daily</span></li>
+  </ul>
+  <div class="lockbox"><b>Delivered in weeks 2–4.</b> Messages first (week 2), call scripts and objection bank (week 3), decision and recovery scripts (week 4).</div>`;
+
+document.querySelector("#v-eng").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) show(b.dataset.go); });
+
+/* ================= TABS ================= */
+const tabs = [...document.querySelectorAll(".tab")];
+function show(id) { tabs.forEach(t => { const on = t.id === "t-" + id; t.setAttribute("aria-selected", on); document.getElementById(t.getAttribute("aria-controls")).hidden = !on; }); }
+tabs.forEach(t => t.addEventListener("click", () => show(t.id.slice(2))));
+const h = (location.hash || "").slice(1); if (["queue", "funnel", "ai", "res", "play", "eng", "case", "offer"].includes(h)) show(h);
+
+renderSim(); renderQueue(); renderWorkspace(); calc();
+</script>
+
+</body>
+</html>
